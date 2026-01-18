@@ -1,3 +1,6 @@
+_metadata:
+  major_version: 1
+  minor_version: 1
 display_information:
   name: GTM Tracker
   description: Track and manage Go-To-Market activities
@@ -9,7 +12,6 @@ features:
   slash_commands:
     - command: /gtm-help
       description: Show available GTM Tracker commands
-      usage_hint: ""
       should_escape: false
     - command: /gtm-list
       description: List recent GTM activities
