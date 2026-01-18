@@ -59,36 +59,45 @@ async def slack_commands(
     """
     Handle Slack slash commands
     """
-    # Verify Slack signature
-    signing_secret = os.getenv("SLACK_SIGNING_SECRET")
-    if signing_secret:
-        body = await request.body()
-        timestamp = request.headers.get("X-Slack-Request-Timestamp", "")
-        signature = request.headers.get("X-Slack-Signature", "")
+    try:
+        # Verify Slack signature
+        signing_secret = os.getenv("SLACK_SIGNING_SECRET")
+        if signing_secret:
+            body = await request.body()
+            timestamp = request.headers.get("X-Slack-Request-Timestamp", "")
+            signature = request.headers.get("X-Slack-Signature", "")
 
-        if not verify_slack_signature(signing_secret, timestamp, body, signature):
-            raise HTTPException(status_code=401, detail="Invalid signature")
+            if not verify_slack_signature(signing_secret, timestamp, body, signature):
+                raise HTTPException(status_code=401, detail="Invalid signature")
 
-    text = text.strip()
+        text = text.strip()
 
-    # Route to appropriate handler
-    if command == "/gtm-help":
-        response = handle_gtm_help()
-    elif command == "/gtm-list":
-        response = handle_gtm_list(text if text else None)
-    elif command == "/gtm-view":
-        response = handle_gtm_view(text)
-    elif command == "/gtm-add":
-        response = handle_gtm_add(text)
-    elif command == "/gtm-update":
-        response = handle_gtm_update(text)
-    else:
-        response = {
+        # Route to appropriate handler
+        if command == "/gtm-help":
+            response = handle_gtm_help()
+        elif command == "/gtm-list":
+            response = handle_gtm_list(text if text else None)
+        elif command == "/gtm-view":
+            response = handle_gtm_view(text)
+        elif command == "/gtm-add":
+            response = handle_gtm_add(text)
+        elif command == "/gtm-update":
+            response = handle_gtm_update(text)
+        else:
+            response = {
+                "response_type": "ephemeral",
+                "text": f"Unknown command: {command}. Try `/gtm-help` for available commands."
+            }
+
+        return JSONResponse(response)
+    except Exception as e:
+        # Return error to Slack
+        import traceback
+        error_details = traceback.format_exc()
+        return JSONResponse({
             "response_type": "ephemeral",
-            "text": f"Unknown command: {command}. Try `/gtm-help` for available commands."
-        }
-
-    return JSONResponse(response)
+            "text": f"❌ Error: {str(e)}\n```{error_details[:500]}```"
+        })
 
 
 @app.post("/api/slack/interactive")
