@@ -49,28 +49,33 @@ from app.slack_utils import verify_slack_signature
 
 
 @app.post("/api/slack/commands")
-async def slack_commands(
-    request: Request,
-    command: str = Form(...),
-    text: str = Form(default=""),
-    user_id: str = Form(...),
-    response_url: str = Form(...)
-):
+async def slack_commands(request: Request):
     """
     Handle Slack slash commands
     """
     try:
+        # Read body for signature verification BEFORE parsing form
+        body = await request.body()
+
         # Verify Slack signature
         signing_secret = os.getenv("SLACK_SIGNING_SECRET")
         if signing_secret:
-            body = await request.body()
             timestamp = request.headers.get("X-Slack-Request-Timestamp", "")
             signature = request.headers.get("X-Slack-Signature", "")
 
             if not verify_slack_signature(signing_secret, timestamp, body, signature):
                 raise HTTPException(status_code=401, detail="Invalid signature")
 
-        text = text.strip()
+        # Now parse form data manually
+        form_data = {}
+        for item in body.decode('utf-8').split('&'):
+            if '=' in item:
+                key, value = item.split('=', 1)
+                from urllib.parse import unquote_plus
+                form_data[key] = unquote_plus(value)
+
+        command = form_data.get('command', '')
+        text = form_data.get('text', '').strip()
 
         # Route to appropriate handler
         if command == "/gtm-help":
