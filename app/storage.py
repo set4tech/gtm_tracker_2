@@ -18,6 +18,7 @@ class GTMActivity:
     meetings_booked: Optional[int] = None
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    est_weekly_hrs: Optional[float] = None
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     updated_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 

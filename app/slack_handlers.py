@@ -153,15 +153,50 @@ def handle_gtm_view(activity_id_str: str) -> Dict[str, Any]:
                     "text": f"*List Size*\n{activity.list_size or 'N/A'}"
                 }
             ]
+        },
+        {
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Meetings Booked*\n{activity.meetings_booked or 'N/A'}"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Est. Weekly Hours*\n{activity.est_weekly_hrs or 'N/A'}"
+                }
+            ]
         }
     ]
 
+    # Add dates if available
+    if activity.start_date or activity.end_date:
+        blocks.append({
+            "type": "section",
+            "fields": [
+                {
+                    "type": "mrkdwn",
+                    "text": f"*Start Date*\n{activity.start_date or 'N/A'}"
+                },
+                {
+                    "type": "mrkdwn",
+                    "text": f"*End Date*\n{activity.end_date or 'N/A'}"
+                }
+            ]
+        })
+
     if activity.description:
+        # Limit description length for Slack
+        desc = activity.description
+        if len(desc) > 500:
+            desc = desc[:497] + "..."
+
+        blocks.append({"type": "divider"})
         blocks.append({
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"*Description*\n{activity.description}"
+                "text": f"*Description*\n{desc}"
             }
         })
 

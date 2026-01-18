@@ -18,6 +18,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Import data on startup
+@app.on_event("startup")
+async def startup_event():
+    """Load initial data from CSV on startup"""
+    from app.import_data import import_csv_data
+    from app.storage import storage
+
+    # Only import if storage is empty
+    if len(storage.activities) == 0:
+        try:
+            count = import_csv_data()
+            print(f"✓ Imported {count} GTM activities from CSV")
+        except Exception as e:
+            print(f"Warning: Could not import CSV data: {e}")
+
 @app.get("/")
 async def root():
     """Root endpoint with API information"""
