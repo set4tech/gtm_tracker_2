@@ -1,8 +1,17 @@
 """
 Slack command handlers for GTM Tracker
 """
+import os
 from typing import Dict, Any
 from app.storage import storage
+
+# Initialize Slack client for posting messages
+try:
+    from slack_sdk import WebClient
+    slack_token = os.getenv("SLACK_BOT_TOKEN")
+    slack_client = WebClient(token=slack_token) if slack_token else None
+except ImportError:
+    slack_client = None
 
 
 def handle_gtm_help() -> Dict[str, Any]:
@@ -296,15 +305,70 @@ def handle_gtm_add(text: str) -> Dict[str, Any]:
         channels=channels
     )
 
+    # Post to #all-set4 channel
+    if slack_client:
+        try:
+            slack_client.chat_postMessage(
+                channel="all-set4",
+                text=f"🎯 New GTM Activity Created: {activity.hypothesis}",
+                blocks=[
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": f"🎯 New GTM Activity #{activity.id}"
+                        }
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Hypothesis*\n{activity.hypothesis}"
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Audience*\n{activity.audience or 'N/A'}"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Channels*\n{activity.channels or 'N/A'}"
+                            },
+                            {
+                                "type": "mrkdwn",
+                                "text": f"*Activity ID*\n#{activity.id}"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "context",
+                        "elements": [
+                            {
+                                "type": "mrkdwn",
+                                "text": "View details: `/gtm-view " + str(activity.id) + "`"
+                            }
+                        ]
+                    }
+                ]
+            )
+        except Exception as e:
+            # Log error but don't fail the command
+            print(f"Warning: Could not post to #all-set4: {e}")
+
     return {
-        "response_type": "in_channel",
-        "text": f"✅ Created activity #{activity.id}: {activity.hypothesis}",
+        "response_type": "ephemeral",
+        "text": f"✅ Created activity #{activity.id}: {activity.hypothesis}\n_Also posted to #all-set4_",
         "blocks": [
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"✅ *Activity #{activity.id} Created*\n\n*Hypothesis:* {activity.hypothesis}\n*Audience:* {activity.audience or 'N/A'}\n*Channels:* {activity.channels or 'N/A'}"
+                    "text": f"✅ *Activity #{activity.id} Created*\n\n*Hypothesis:* {activity.hypothesis}\n*Audience:* {activity.audience or 'N/A'}\n*Channels:* {activity.channels or 'N/A'}\n\n_Also posted to <#all-set4>_"
                 }
             }
         ]
