@@ -1,0 +1,42 @@
+display_information:
+  name: GTM Tracker
+  description: Track and manage Go-To-Market activities
+  background_color: "#2c2d30"
+features:
+  bot_user:
+    display_name: GTM Tracker
+    always_online: true
+  slash_commands:
+    - command: /gtm-help
+      description: Show available GTM Tracker commands
+      usage_hint: ""
+      should_escape: false
+    - command: /gtm-list
+      description: List recent GTM activities
+      usage_hint: "[filter text]"
+      should_escape: false
+    - command: /gtm-view
+      description: View details of a specific activity
+      usage_hint: "[activity_id]"
+      should_escape: false
+    - command: /gtm-add
+      description: Add a new GTM activity
+      usage_hint: "hypothesis | audience | channels"
+      should_escape: false
+    - command: /gtm-update
+      description: Update an existing activity
+      usage_hint: "[activity_id]"
+      should_escape: false
+oauth_config:
+  scopes:
+    bot:
+      - commands
+      - chat:write
+      - chat:write.public
+settings:
+  interactivity:
+    is_enabled: true
+    request_url: https://YOUR_VERCEL_URL/api/slack/interactive
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
