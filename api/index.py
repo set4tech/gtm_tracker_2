@@ -159,4 +159,9 @@ async def slack_interactive(request: Request):
             response = handle_gtm_view(value)
             return JSONResponse(response)
 
+        # Share activity button
+        elif action_id.startswith("share_activity_"):
+            response = handle_gtm_view(value, public=True)
+            return JSONResponse(response)
+
     return JSONResponse({"ok": True})

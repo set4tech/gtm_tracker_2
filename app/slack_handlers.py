@@ -12,17 +12,24 @@ def handle_gtm_help() -> Dict[str, Any]:
 
 • `/gtm-help` - Show this help message
 • `/gtm-list [filter]` - List recent activities (optional filter)
+• `/gtm-list public [filter]` - Share list with channel
 • `/gtm-view [id]` - View details of a specific activity
+• `/gtm-view [id] public` - Share activity details with channel
 • `/gtm-add hypothesis | audience | channels` - Add a new activity
 • `/gtm-update [id]` - Update an existing activity
 
 *Examples:*
 ```
 /gtm-list
+/gtm-list public
 /gtm-list linkedin
+/gtm-list public email
 /gtm-view 1
+/gtm-view 1 public
 /gtm-add Test cold email | Startups | Email
 ```
+
+*Sharing:* By default, responses are private (only you see them). Add `public` to share with the channel, or click the "Share with Channel" button.
 
 *Need help?* Contact your team admin.
     """.strip()
@@ -33,8 +40,16 @@ def handle_gtm_help() -> Dict[str, Any]:
     }
 
 
-def handle_gtm_list(filter_text: str = None) -> Dict[str, Any]:
+def handle_gtm_list(filter_text: str = None, public: bool = False) -> Dict[str, Any]:
     """Handle /gtm-list command"""
+    # Check if user wants public sharing
+    if filter_text and filter_text.lower() == 'public':
+        public = True
+        filter_text = None
+    elif filter_text and filter_text.lower().startswith('public '):
+        public = True
+        filter_text = filter_text[7:].strip() or None
+
     activities = storage.list_all(limit=10, filter_text=filter_text)
 
     if not activities:
@@ -71,12 +86,25 @@ def handle_gtm_list(filter_text: str = None) -> Dict[str, Any]:
 
     for activity in activities:
         blocks.append({"type": "divider"})
+
+        # Build metrics line
+        metrics = []
+        if activity.list_size:
+            metrics.append(f"📧 {activity.list_size}")
+        if activity.meetings_booked:
+            metrics.append(f"📅 {activity.meetings_booked} meetings")
+        if activity.start_date:
+            metrics.append(f"🗓️ Started {activity.start_date}")
+
+        metrics_text = " • ".join(metrics) if metrics else "No metrics yet"
+
         blocks.append({
             "type": "section",
             "text": {
                 "type": "mrkdwn",
                 "text": f"*#{activity.id}* - {activity.hypothesis}\n"
-                        f"👥 {activity.audience or 'N/A'} • 📢 {activity.channels or 'N/A'}"
+                        f"👥 {activity.audience or 'N/A'} • 📢 {activity.channels or 'N/A'}\n"
+                        f"{metrics_text}"
             },
             "accessory": {
                 "type": "button",
@@ -90,17 +118,22 @@ def handle_gtm_list(filter_text: str = None) -> Dict[str, Any]:
         })
 
     return {
-        "response_type": "ephemeral",
+        "response_type": "in_channel" if public else "ephemeral",
         "blocks": blocks
     }
 
 
-def handle_gtm_view(activity_id_str: str) -> Dict[str, Any]:
+def handle_gtm_view(activity_id_str: str, public: bool = False) -> Dict[str, Any]:
     """Handle /gtm-view command"""
+    # Check if user wants public sharing
+    if activity_id_str and activity_id_str.lower().endswith(' public'):
+        public = True
+        activity_id_str = activity_id_str[:-7].strip()
+
     if not activity_id_str:
         return {
             "response_type": "ephemeral",
-            "text": "❌ Please provide an activity ID. Example: `/gtm-view 1`"
+            "text": "❌ Please provide an activity ID. Example: `/gtm-view 1`\nTip: Add 'public' to share with channel: `/gtm-view 1 public`"
         }
 
     try:
@@ -211,8 +244,26 @@ def handle_gtm_view(activity_id_str: str) -> Dict[str, Any]:
         ]
     })
 
+    # Add share button if viewing privately
+    if not public:
+        blocks.append({
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "📢 Share with Channel"
+                    },
+                    "style": "primary",
+                    "action_id": f"share_activity_{activity.id}",
+                    "value": str(activity.id)
+                }
+            ]
+        })
+
     return {
-        "response_type": "ephemeral",
+        "response_type": "in_channel" if public else "ephemeral",
         "blocks": blocks
     }
 
