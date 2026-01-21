@@ -28,8 +28,7 @@ from app.slack_handlers import (
 from app.slack_utils import (
     create_update_modal,
     parse_modal_submission,
-    format_activity_for_slack,
-    post_new_activity_notification
+    format_activity_for_slack
 )
 
 # Initialize FastAPI app
@@ -128,13 +127,7 @@ async def get_activity(activity_id: int, db: Session = Depends(get_db)):
 @app.post("/api/activities", response_model=ActivityResponse, status_code=201)
 async def create_activity(activity: ActivityCreate, db: Session = Depends(get_db)):
     """Create a new activity"""
-    new_activity = crud.create_activity(db, activity)
-
-    # Post notification to Slack
-    if slack_client:
-        post_new_activity_notification(new_activity, slack_client)
-
-    return new_activity
+    return crud.create_activity(db, activity)
 
 # Update activity (full update)
 @app.put("/api/activities/{activity_id}", response_model=ActivityResponse)
