@@ -398,7 +398,16 @@ async def slack_oauth_callback(code: str = Query(None), error: str = Query(None)
 
 
 # Export for Vercel serverless function
-from mangum import Mangum
+try:
+    from mangum import Mangum
+    # Wrap the FastAPI app for Vercel's serverless environment
+    _mangum_handler = Mangum(app, lifespan="off")
 
-# Create handler for Vercel
-handler = Mangum(app, lifespan="off")
+    # Create a proper handler function that Vercel can recognize
+    def handler(event, context):
+        return _mangum_handler(event, context)
+
+except ImportError:
+    # Fallback: export app directly if mangum not available
+    # Modern Vercel Python runtime can handle ASGI apps
+    handler = app
